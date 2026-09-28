@@ -1,4 +1,4 @@
-import { CheckCircle, DownloadSimple, FileImage, FileZip, Trash, UploadSimple, WarningCircle } from '@phosphor-icons/react';
+import { CheckCircle, FileImage, FileZip, Trash, UploadSimple, WarningCircle } from '@phosphor-icons/react';
 import { useRef, useState } from 'react';
 
 import { createZip } from '../../app/archive';
@@ -87,16 +87,11 @@ export function ImageConverterPage({ uiLanguage }: { uiLanguage: Language }) {
           watermark: watermarkBytes ? { bytes: watermarkBytes, scalePercent: watermarkScale, opacity: watermarkOpacity, position: watermarkPosition } : undefined,
         });
         setJobs((current) => current.map((item) => item.id === job.id ? { ...item, status: 'done', output, detectedFormat: output.inputFormat } : item));
+        downloadFile({ name: outputFileName(job.file.name, output.outputFormat), blob: new Blob([output.bytes as BlobPart], { type: outputMime(output.outputFormat) }) });
       } catch (error) {
         setJobs((current) => current.map((item) => item.id === job.id ? { ...item, status: 'error', error: error instanceof Error ? error.message : String(error) } : item));
       }
     }
-  };
-
-  const download = (job: ImageJob) => {
-    if (!job.output) return;
-    const blob = new Blob([job.output.bytes as BlobPart], { type: outputMime(job.output.outputFormat) });
-    downloadFile({ name: outputFileName(job.file.name, job.output.outputFormat), blob });
   };
 
   const downloadAll = async () => {
@@ -122,7 +117,7 @@ export function ImageConverterPage({ uiLanguage }: { uiLanguage: Language }) {
     <div className="converter-layout">
       <section className="queue-panel">
         <div className="queue-toolbar"><strong>{jobs.length} {uiLanguage === 'fa' ? 'فایل' : 'files'}</strong><div><button type="button" data-testid="download-all-images" disabled={busy || zipping || !jobs.some((job) => job.output)} onClick={downloadAll}><FileZip size={17} />{zipping ? t.preparingZip : t.downloadAll}</button><button type="button" disabled={busy || !jobs.length} onClick={() => setJobs([])}><Trash size={17} />{t.clear}</button></div></div>
-        <div className="queue-list">{jobs.length === 0 ? <div className="queue-empty"><FileImage size={34} /><span>{t.empty}</span></div> : jobs.map((job) => <article className="queue-item" data-testid="image-job" data-status={job.status} key={job.id}><span className={`job-state ${job.status}`}>{job.status === 'done' ? <CheckCircle size={19} /> : job.status === 'error' ? <WarningCircle size={19} /> : <FileImage size={19} />}</span><div><strong title={job.file.name}>{job.file.name}</strong><small>{job.detectedFormat ?? (job.file.type || 'image')} / {formatFileSize(job.file.size)}{job.output ? ` → ${formatFileSize(job.output.bytes.byteLength)}` : ''}</small>{job.error && <em>{job.error}</em>}</div><span className="job-result">{job.status === 'processing' ? t.processing : job.status === 'done' && job.output ? `${Math.abs(savingPercent(job.file.size, job.output.bytes.byteLength))}% ${savingPercent(job.file.size, job.output.bytes.byteLength) >= 0 ? t.smaller : t.larger}` : t[job.status]}</span>{job.output && <button className="icon-action" data-testid="download-image" type="button" aria-label={t.download} title={t.download} onClick={() => download(job)}><DownloadSimple size={18} /></button>}</article>)}</div>
+        <div className="queue-list">{jobs.length === 0 ? <div className="queue-empty"><FileImage size={34} /><span>{t.empty}</span></div> : jobs.map((job) => <article className="queue-item" data-testid="image-job" data-status={job.status} key={job.id}><span className={`job-state ${job.status}`}>{job.status === 'done' ? <CheckCircle size={19} /> : job.status === 'error' ? <WarningCircle size={19} /> : <FileImage size={19} />}</span><div><strong title={job.file.name}>{job.file.name}</strong><small>{job.detectedFormat ?? (job.file.type || 'image')} / {formatFileSize(job.file.size)}{job.output ? ` → ${formatFileSize(job.output.bytes.byteLength)}` : ''}</small>{job.error && <em>{job.error}</em>}</div><span className="job-result">{job.status === 'processing' ? t.processing : job.status === 'done' && job.output ? `${Math.abs(savingPercent(job.file.size, job.output.bytes.byteLength))}% ${savingPercent(job.file.size, job.output.bytes.byteLength) >= 0 ? t.smaller : t.larger}` : t[job.status]}</span></article>)}</div>
       </section>
 
       <aside className="image-settings">

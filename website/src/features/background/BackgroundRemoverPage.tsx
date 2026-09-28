@@ -1,4 +1,4 @@
-import { CheckCircle, DownloadSimple, FileImage, FileZip, Stop, Trash, UploadSimple, WarningCircle } from '@phosphor-icons/react';
+import { CheckCircle, FileImage, FileZip, Stop, Trash, UploadSimple, WarningCircle } from '@phosphor-icons/react';
 import { useEffect, useRef, useState } from 'react';
 
 import { createZip } from '../../app/archive';
@@ -83,6 +83,7 @@ export function BackgroundRemoverPage({ uiLanguage }: { uiLanguage: Language }) 
         urls.current.add(resultUrl);
         if (job.resultUrl) { URL.revokeObjectURL(job.resultUrl); urls.current.delete(job.resultUrl); }
         setJobs((current) => current.map((item) => item.id === job.id ? { ...item, result, resultUrl, status: 'done', progress: 1 } : item));
+        downloadFile({ name: backgroundOutputName(job.file.name), blob: new Blob([result.bytes as BlobPart], { type: 'image/png' }) });
       } catch (reason) {
         if (run !== runId.current) break;
         setJobs((current) => current.map((item) => item.id === job.id ? {
@@ -111,11 +112,6 @@ export function BackgroundRemoverPage({ uiLanguage }: { uiLanguage: Language }) 
     setArchiveError('');
   };
 
-  const download = (job: BackgroundJob) => {
-    if (!job.result) return;
-    downloadFile({ name: backgroundOutputName(job.file.name), blob: new Blob([job.result.bytes as BlobPart], { type: 'image/png' }) });
-  };
-
   const downloadAll = async () => {
     const completed = jobs.filter((job) => job.result);
     if (!completed.length) return;
@@ -141,7 +137,6 @@ export function BackgroundRemoverPage({ uiLanguage }: { uiLanguage: Language }) 
         <span className={`job-state ${job.status}`}>{job.status === 'done' ? <CheckCircle size={19} /> : job.status === 'error' ? <WarningCircle size={19} /> : <FileImage size={19} />}</span>
         <button type="button" className={selected?.id === job.id ? 'background-file active' : 'background-file'} onClick={() => setSelectedId(job.id)} aria-label={`${job.file.name} · ${t[job.status]}`}><strong title={job.file.name}>{job.file.name}</strong><small>{formatFileSize(job.file.size)}{job.result ? ` → ${formatFileSize(job.result.bytes.byteLength)}` : ''}</small>{job.error && <em>{job.error}</em>}{job.status === 'processing' && <span className="job-progress"><i style={{ width: `${Math.round(job.progress * 100)}%` }} /></span>}</button>
         <span className="job-result">{job.status === 'processing' ? `${Math.round(job.progress * 100)}%` : t[job.status]}</span>
-        {job.result && <button className="icon-action" data-testid="download-background" type="button" aria-label={`${t.download}: ${job.file.name}`} title={t.download} onClick={() => download(job)}><DownloadSimple size={18} /></button>}
       </article>)}</div>
     </section>
     {selected && <section className="background-workspace">

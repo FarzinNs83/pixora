@@ -1,4 +1,4 @@
-import { CheckCircle, DownloadSimple, FileVideo, FileZip, Stop, Trash, UploadSimple, WarningCircle } from '@phosphor-icons/react';
+import { CheckCircle, FileVideo, FileZip, Stop, Trash, UploadSimple, WarningCircle } from '@phosphor-icons/react';
 import { useEffect, useRef, useState } from 'react';
 
 import { createZip } from '../../app/archive';
@@ -87,6 +87,7 @@ export function VideoConverterPage({ uiLanguage }: { uiLanguage: Language }) {
         }, (progress) => setJobs((current) => current.map((item) => item.id === job.id ? { ...item, status: 'processing', progress } : item)), !audioOnly ? watermark : undefined);
         if (run !== runId.current) return;
         setJobs((current) => current.map((item) => item.id === job.id ? { ...item, status: 'done', progress: 1, output } : item));
+        downloadFile({ name: videoOutputName(job.file.name, output.outputFormat), blob: new Blob([output.bytes as BlobPart], { type: output.mimeType }) });
       } catch (error) {
         if (run !== runId.current) return;
         const message = error instanceof VideoEngineMemoryError ? t.memoryError
@@ -104,14 +105,6 @@ export function VideoConverterPage({ uiLanguage }: { uiLanguage: Language }) {
     runId.current += 1;
     videoConversionService.cancel();
     setJobs((current) => current.map((item) => item.status === 'loading' || item.status === 'processing' ? { ...item, status: 'cancelled', progress: 0 } : item));
-  };
-
-  const download = (job: VideoJob) => {
-    if (!job.output) return;
-    downloadFile({
-      name: videoOutputName(job.file.name, job.output.outputFormat),
-      blob: new Blob([job.output.bytes as BlobPart], { type: job.output.mimeType }),
-    });
   };
 
   const downloadAll = async () => {
@@ -142,7 +135,6 @@ export function VideoConverterPage({ uiLanguage }: { uiLanguage: Language }) {
           <span className={`job-state ${job.status}`}>{job.status === 'done' ? <CheckCircle size={19} /> : job.status === 'error' ? <WarningCircle size={19} /> : <FileVideo size={19} />}</span>
           <div><strong title={job.file.name}>{job.file.name}</strong><small>{job.file.type || 'media'} / {formatFileSize(job.file.size)}{job.output ? ` → ${formatFileSize(job.output.bytes.byteLength)}` : ''}{job.output?.limitedToWidth ? ` · ≤${job.output.limitedToWidth}px` : ''}</small>{job.error && <em>{job.error}</em>}{(job.status === 'loading' || job.status === 'processing') && <span className="job-progress"><i style={{ width: `${Math.max(4, Math.round(job.progress * 100))}%` }} /></span>}</div>
           <span className="job-result">{job.status === 'processing' ? `${Math.round(job.progress * 100)}%` : job.status === 'done' && job.output ? `${Math.abs(savingPercent(job.file.size, job.output.bytes.byteLength))}% ${savingPercent(job.file.size, job.output.bytes.byteLength) >= 0 ? t.smaller : t.larger}` : t[job.status]}</span>
-          {job.output && <button className="icon-action" data-testid="download-video" type="button" aria-label={t.download} title={t.download} onClick={() => download(job)}><DownloadSimple size={18} /></button>}
         </article>)}</div>
       </section>
       <aside className="image-settings">
